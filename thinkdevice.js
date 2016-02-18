@@ -144,7 +144,7 @@ var onopen = function () {
 
 var onmessage = function(data) {
   console.log('Received from platform:');
-  console.log(JSON.stringify(data));
+  console.log(data);
 }
 
 var onerror = function() {
