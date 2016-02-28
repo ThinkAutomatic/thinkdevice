@@ -103,7 +103,7 @@ function handleReq(req, res) {
   var parsedUrl = url.parse(req.url);
   var params = querystring.parse(parsedUrl.query);
 
-  if (parsedUrl.pathname === '/link') {
+  if (parsedUrl.pathname == '/link') {
     if (!params['linkToken']) {
       handleErr("No linkToken provided", res);
     }
@@ -132,6 +132,13 @@ function handleReq(req, res) {
         }
       });
     }
+  }
+  else if (parsedUrl.pathname == '/')
+  {
+    console.log('Selecting scene ' + params['sceneId']);
+    selectScene(findElem(sceneTriggerData['sceneTriggerData']['scenes'], params));
+    res.writeHead(200, {"Content-Type": "text/html"});
+    res.end();
   }
   else {
     handleErr("Invalid route", res);
@@ -165,6 +172,14 @@ function on(eventName, cb) {
   }
 }
 
+
+function currentlySelected(command)
+{
+  if (command && command['action'] && command['action']['sceneId'])
+    return findElem(rooms, command['action']);
+  return false;
+}
+
 function startEventSource(cb)
 {
   var src = new EventSource(deviceConf['eventStreamUrl']);
@@ -179,7 +194,7 @@ function startEventSource(cb)
 
       if (parsedData['sceneTriggerData'])
         updateSceneTriggerData(parsedData);
-      else
+      else if (!currentlySelected(parsedData))
         onmessage(parsedData);
     }
     catch (err) 
@@ -198,32 +213,27 @@ function startEventSource(cb)
 }
 
 function run(cb) {
-  if (deviceConf['homeId']) {
-    console.log('Device already associated with a home, not starting http server for discovery');
-    startEventSource(cb);
+  // Configure our HTTP server
+  var server = http.createServer(function (req, res) {
+    handleReq(req, res);
+  });
+
+  server.on('error', function(e) {
+    logError('Unable to start local server on port ' + serverPort.toString());
+    serverPort = serverPort + 1;
+    run(cb);
+  });
+
+  if (serverPort < 3300) {
+    console.log('Attempting to start local server on port ' + serverPort.toString());
+    server.listen(serverPort, function(){
+      console.log('Local http server running at ' + directUrl());
+      startEventSource(cb);
+    });
   }
   else {
-    // Configure our HTTP server
-    var server = http.createServer(function (req, res) {
-      handleReq(req, res);
-    });
-
-    server.on('error', function(e) {
-      logError('Unable to start discover server on port ' + serverPort.toString());
-      serverPort = serverPort + 1;
-      run(cb);
-    });
-
-    if (serverPort < 3300) {
-      console.log('Attempting to start discovery server on port ' + serverPort.toString());
-      server.listen(serverPort, function(){
-        console.log('Discovery http server running at ' + directUrl());
-        startEventSource(cb);
-      });
-    }
-    else {
-      logError('Unable to start discover server, exiting.');
-    }
+    logError('[warning] Unable to start local server.');
+    startEventSource(cb);
   }
 }
 
@@ -267,7 +277,7 @@ function matchElem(elem, selector) {
   for (var i = 0; i < keyArray.length; i++) {
     var key = keyArray[i];
     if (elem[key]) {
-      if (elem[key] !== selector[key])
+      if (elem[key] != selector[key])
         return false;
       oneMatch = true;      
     }
@@ -289,17 +299,14 @@ function purgeRoomFromSceneCache(roomId) {
   var room = findElem(rooms, {roomId:roomId});
   var currSceneId = 0;
 
-  if (room !== null)
+  if (room != null)
     currSceneId = room['sceneId'];
 
   for(var i = sceneSelectHistory.length; i--;) {
     if (sceneSelectHistory[i]["roomId"] == roomId &&
-        sceneSelectHistory[i]["sceneId"] !== currSceneId) 
+        sceneSelectHistory[i]["sceneId"] != currSceneId) 
       sceneSelectHistory.splice(i, 1);
   }  
-
-  console.log('sceneSelectHistory_2');
-  console.log(sceneSelectHistory);
 }
 
 
@@ -318,6 +325,20 @@ function setRoomTimeout(roomId, sceneId) {
 }
 
 
+function selectScene(scene) {
+  if (scene) {
+    if (scene['commands']) {
+      scene['commands'].forEach(function (command) { onmessage(command); });
+    }
+    setRoomTimeout(scene.roomId, scene.sceneId);
+    if (scene.level == 0)
+      purgeRoomFromSceneCache(scene.roomId);
+    else
+      sceneSelectHistory.push({"sceneId":scene.sceneId, "roomId":scene.roomId});
+  }
+}
+
+
 function selectCachedScene(deviceSelector, deviceProperties, cb) {
   if (sceneTriggerData['sceneTriggerData']) {
     var devices = sceneTriggerData['sceneTriggerData']['devices'];
@@ -332,14 +353,24 @@ function selectCachedScene(deviceSelector, deviceProperties, cb) {
             if (findElem(sceneSelectHistory, scene) == null) {
               var fullScene = findElem(sceneTriggerData['sceneTriggerData']['scenes'], scene);
               if (fullScene) {
-                fullScene['commands'].forEach(function (command) { onmessage(command); });
-                setRoomTimeout(fullScene.roomId, fullScene.sceneId);
-                if (fullScene.level == 0)
-                  purgeRoomFromSceneCache(fullScene.roomId);
-                else
-                  sceneSelectHistory.push({"sceneId":fullScene.sceneId, "roomId":fullScene.roomId});
+                selectScene(fullScene);
+
+                var localDirectUrls = sceneTriggerData['sceneTriggerData']['localDirectUrls'];
+                if (localDirectUrls) {
+                  localDirectUrls.forEach(function (directUrl) {
+                    try { 
+                      console.log('Selecting scene ' + fullScene.sceneId.toString() + ' at: ' + directUrl.toString());
+                      request.get({url: directUrl + '?sceneId=' + fullScene.sceneId.toString() }, function(error, response, body) {
+                      });
+                    }
+                    catch (err) {
+                      logError(err);
+                    }
+                  });
+                }
+
                 deviceProperties['sceneId'] = fullScene.sceneId;
-                deviceProperties['silent'] = 'true';
+//                deviceProperties['silent'] = 'true';
                 cb(deviceProperties);
                 return;
               }
@@ -369,10 +400,6 @@ function patch(deviceSelector, deviceProperties, cb) {
   else {
     selectCachedScene(deviceSelector, deviceProperties, function (devicePropertiesWithScene) {
       devicePropertiesWithScene['hubId'] = deviceConf['deviceId'];
-      console.log('devicePropertiesWithScene');
-      console.log(devicePropertiesWithScene);
-      console.log('sceneSelectHistory');
-      console.log(sceneSelectHistory);
 
       if (typeof deviceSelector === 'number') {
         request.patch({url: urlToThinkAutomatic + 'devices/' + deviceSelector.toString(), 
