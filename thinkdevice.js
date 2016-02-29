@@ -18,6 +18,7 @@ var serverPort;
 var sceneTriggerData = {};
 var sceneSelectHistory = [];
 var rooms = [];
+var devices = [];
 
 function logError(err) {
   console.log(util.format(err) + '\n');
@@ -173,11 +174,35 @@ function on(eventName, cb) {
 }
 
 
-function currentlySelected(command)
+function purgeDeviceFromDeviceCache(deviceId) {
+  for(var i = devices.length; i--;) {
+    if (devices[i]['deviceId'] == deviceId) 
+      devices.splice(i, 1);
+  }  
+}
+
+
+function sendMessage(data)
 {
-  if (command && command['action'] && command['action']['sceneId'])
-    return findElem(rooms, command['action']);
-  return false;
+  if (data && data['device'] && data['device']['deviceId'] &&
+      data['action'] && data['action']['sceneId']) {
+    var device = findElem(devices, data['device']);
+    if (!device) {
+      devices.push({ deviceId: data['device']['deviceId'], 
+                     sceneId: data['action']['sceneId'] });
+    }
+    else { 
+      clearTimeout(device['timeout']);
+      device['timeout'] = setTimeout(function() { 
+        purgeDeviceFromDeviceCache(data['device']['deviceId']); }, 5000 );
+      if (device['sceneId'] != data['action']['sceneId']) 
+        device['sceneId'] = data['action']['sceneId'];
+      else
+        return;
+    }
+  }
+
+  onmessage(data);
 }
 
 function startEventSource(cb)
@@ -194,8 +219,8 @@ function startEventSource(cb)
 
       if (parsedData['sceneTriggerData'])
         updateSceneTriggerData(parsedData);
-      else if (!currentlySelected(parsedData))
-        onmessage(parsedData);
+      else 
+        sendMessage(parsedData);
     }
     catch (err) 
     {
@@ -328,7 +353,7 @@ function setRoomTimeout(roomId, sceneId) {
 function selectScene(scene) {
   if (scene) {
     if (scene['commands']) {
-      scene['commands'].forEach(function (command) { onmessage(command); });
+      scene['commands'].forEach(function (command) { sendMessage(command); });
     }
     setRoomTimeout(scene.roomId, scene.sceneId);
     if (scene.level == 0)
