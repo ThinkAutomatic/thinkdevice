@@ -186,7 +186,7 @@ function sendMessage(data)
 {
   if (data && data['device'] && data['device']['deviceId'] &&
       data['action'] && data['action']['sceneId']) {
-    var device = findElem(devices, data['device']);
+    var device = findElem(devices, {deviceId: data['device']['deviceId']});
     if (!device) {
       devices.push({ deviceId: data['device']['deviceId'], 
                      sceneId: data['action']['sceneId'] });
@@ -205,8 +205,8 @@ function sendMessage(data)
   onmessage(data);
 }
 
-function startEventSource(cb)
-{
+
+function startEventSource(cb) {
   var src = new EventSource(deviceConf['eventStreamUrl']);
 
   src.onopen = function(){
@@ -297,25 +297,30 @@ function connect(deviceProperties, cb)
 
 function matchElem(elem, selector) {
   var oneMatch = false;
-  var keyArray = Object.keys(selector);
 
-  for (var i = 0; i < keyArray.length; i++) {
-    var key = keyArray[i];
-    if (elem[key]) {
-      if (elem[key] != selector[key])
-        return false;
-      oneMatch = true;      
-    }
-  };
+  if (elem && selector) {
+    var keyArray = Object.keys(selector);
+
+    for (var i = 0; i < keyArray.length; i++) {
+      var key = keyArray[i];
+      if (elem[key]) {
+        if (elem[key] != selector[key])
+          return false;
+        oneMatch = true;      
+      }
+    };
+  }
   return oneMatch;
 }
 
 
 function findElem(elemArray, selector) {
-  for (var i = 0; i < elemArray.length; i++) {
-    if (matchElem(elemArray[i], selector))
-      return elemArray[i];
-  };
+  if (elemArray && selector && (elemArray instanceof Array)) {
+    for (var i = 0; i < elemArray.length; i++) {
+      if (matchElem(elemArray[i], selector))
+        return elemArray[i];
+    };
+  }
   return null;
 }
 
