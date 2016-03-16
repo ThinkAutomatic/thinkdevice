@@ -36,7 +36,8 @@ function directUrl() {
           return;
         }
 
-        ipAddress = iface.address;
+        if (iface.address)
+          ipAddress = iface.address;
       });
     });
 
