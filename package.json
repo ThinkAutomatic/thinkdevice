@@ -1,6 +1,6 @@
 {
   "name": "thinkdevice",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Think Automatic platform integration node module",
   "main": "thinkdevice.js",
   "scripts": {
