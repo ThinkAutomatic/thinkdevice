@@ -49,6 +49,17 @@ function directUrl() {
   }
 }
 
+function safeParse(data) {
+  try 
+  { 
+    return JSON.parse(data); 
+  }
+  catch (err) {
+    logError(err);
+    return {error: {message:"unexpected error"}};
+  }  
+}
+
 function updateThinkDeviceConf(newData, cb) {
   var parsedData;
 
@@ -214,19 +225,12 @@ function startEventSource(cb) {
     onopen();
   };
   src.onmessage = function(e) {
-    try 
-    { 
-      var parsedData = JSON.parse(e.data); 
+    var parsedData = safeParse(e.data);
 
-      if (parsedData['sceneTriggerData'])
-        updateSceneTriggerData(parsedData);
-      else 
-        sendMessage(parsedData);
-    }
-    catch (err) 
-    {
-      logError(err);
-    }
+    if (parsedData['sceneTriggerData'])
+      updateSceneTriggerData(parsedData);
+    else 
+      sendMessage(parsedData);
   };
   src.onerror = function() {
     onerror();
@@ -425,7 +429,7 @@ function patch(deviceSelector, deviceProperties, cb) {
                   qs: { access_token: deviceConf['deviceToken'] }, 
                   form: deviceProperties }, function(err,httpResponse,body) { 
                     if (typeof cb === 'function')
-                      cb(body);
+                      cb(safeParse(body));
                   });
   }
   else {
@@ -437,7 +441,7 @@ function patch(deviceSelector, deviceProperties, cb) {
                       qs: { access_token: deviceConf['deviceToken'] }, 
                       form: devicePropertiesWithScene }, function(err,httpResponse,body) { 
                         if (typeof cb === 'function')
-                          cb(body);
+                          cb(safeParse(body));
                       });
       }
       else {
@@ -445,7 +449,7 @@ function patch(deviceSelector, deviceProperties, cb) {
                       qs: { access_token: deviceConf['deviceToken'], where: deviceSelector }, 
                       form: devicePropertiesWithScene }, function(err,httpResponse,body) { 
                         if (typeof cb === 'function')
-                          cb(body);
+                          cb(safeParse(body));
                       });
       }
     });

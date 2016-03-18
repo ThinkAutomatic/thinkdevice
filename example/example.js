@@ -2,7 +2,7 @@
 
 var td = require('thinkdevice');
 
-td.connect({ name: 'Think Hub',  deviceTypeUuid: 'ada8ffe3-0cfb-4506-9371-0f9d0e1403ca' }, function () { 
+td.connect({ name: 'Example Hub',  deviceTypeUuid: '636a0568-5dd1-414f-9328-a092164e5374' }, function () { 
   console.log('Started')
 });
 
@@ -12,7 +12,7 @@ td.on('open', function() {
 
 td.on('message', function (data) {
   console.log('Received:');
-  console.log(JSON.stringify(data));
+  console.log(data);
 });
 
 td.on('error', function () {
