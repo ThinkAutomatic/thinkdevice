@@ -19,29 +19,34 @@ var sceneTriggerData = {};
 var sceneSelectHistory = [];
 var rooms = [];
 var devices = [];
+var httpLinkRequest;
+var httpRequest;
 
 function logError(err) {
   console.log(util.format(err) + '\n');
   log_file.write(util.format(err) + '\n');  
 }
 
-function directUrl() {
-  var ipAddress;
+function getLocalIpAddress () {
+  var localIpAddress;
 
-  if (serverPort) {
-    Object.keys(ifaces).forEach(function (ifname) {
-      ifaces[ifname].forEach(function (iface) {
-        if ('IPv4' !== iface.family || iface.internal !== false) {
-          // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
-          return;
-        }
+  Object.keys(ifaces).forEach(function (ifname) {
+    ifaces[ifname].forEach(function (iface) {
+      if ('IPv4' !== iface.family || iface.internal !== false) {
+        // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+        return;
+      }
 
-        if (iface.address)
-          ipAddress = iface.address;
-      });
+      if (iface.address)
+        localIpAddress = iface.address;
     });
+  });
+  return localIpAddress;
+}
 
-    return "http://" + ipAddress + ":" + serverPort.toString() + "/";
+function directUrl() {
+  if (serverPort) {
+    return "http://" + getLocalIpAddress() + ":" + serverPort.toString() + "/";
   }
   else
   {
@@ -76,6 +81,12 @@ function updateThinkDeviceConf(newData, cb) {
       });
     }
     else {
+      if (parsedData['error'] && parsedData['error']['code'] && parsedData['error']['code'] == 3010)
+      {
+        console.log('Not authenticated. Deleting device info and exiting');
+        fs.unlink('device.conf');
+        process.exit(1);
+      }
       throw newData;
     }
   }
@@ -133,12 +144,15 @@ function handleReq(req, res) {
                 handleErr(err, res);
               }
               else {
-                if (params['successRedirect']) {
-                  res.writeHead(302, {'Location': params['successRedirect']});
+                if (httpLinkRequest) {
+                  httpLinkRequest(params, res);
+                }
+                else if (params['successRedirect']) {
+                  res.writeHead(301, {'Location': params['successRedirect']});
                   res.end();
                 }
                 else {
-                  handleErr("Link succeeded but no successRedirect supplied");
+                  handleErr("Link succeeded but no successRedirect supplied", res);
                 }
               }
             });
@@ -149,9 +163,16 @@ function handleReq(req, res) {
   else if (parsedUrl.pathname == '/')
   {
     console.log('Selecting scene ' + params['sceneId']);
-    selectScene(findElem(sceneTriggerData['sceneTriggerData']['scenes'], params));
-    res.writeHead(200, {"Content-Type": "text/html"});
-    res.end();
+    if (sceneTriggerData['sceneTriggerData']) {
+      selectScene(findElem(sceneTriggerData['sceneTriggerData']['scenes'], params));
+    }
+    if (httpRequest) {
+      httpRequest(params, res);
+    }
+    else {
+      res.writeHead(200, {"Content-Type": "text/html"});
+      res.end();
+    }
   }
   else {
     handleErr("Invalid route", res);
@@ -181,6 +202,12 @@ function on(eventName, cb) {
       break;
     case 'error':
       onerror = cb; 
+      break;
+    case 'httpLinkRequest':
+      httpLinkRequest = cb;
+      break;
+    case 'httpRequest':
+      httpRequest = cb;
       break;
   }
 }
@@ -227,10 +254,17 @@ function startEventSource(cb) {
   src.onmessage = function(e) {
     var parsedData = safeParse(e.data);
 
-    if (parsedData['sceneTriggerData'])
+    if (parsedData['sceneTriggerData']) {
       updateSceneTriggerData(parsedData);
-    else 
+    }
+    else if ((parsedData['delete'] == 'true') && parsedData['device'] && (parsedData['device']['deviceId'] == deviceConf['deviceId'])) {
+      console.log('Deleting device info and exiting');
+      fs.unlink('device.conf');
+      process.exit(1);
+    }
+    else {
       sendMessage(parsedData);
+    }
   };
   src.onerror = function() {
     onerror();
@@ -275,7 +309,7 @@ function connect(deviceProperties, cb)
 
   fs.readFile('sceneData.conf', 'utf8', function (err,data) {
     if (!err) {
-      sceneTriggerData = JSON.parse(data);
+      sceneTriggerData = safeParse(data);
     }
     fs.readFile('device.conf', 'utf8', function (err,data) {
       if (err) 
@@ -288,11 +322,11 @@ function connect(deviceProperties, cb)
       }
       else
       {
-        deviceConf = JSON.parse(data);
+        deviceConf = safeParse(data);
         console.log('Updating device.');
         request.patch({url: urlToThinkAutomatic + 'devices/' + deviceConf['deviceId'], 
                     qs: { access_token: deviceConf['deviceToken'] }, 
-                    form: deviceProperties }, function(err,httpResponse,body) { 
+                    form: deviceProperties }, function(err,httpResponse,body) {
           updateThinkDeviceConf(body, function () { run(cb); });
         });
       }
@@ -460,6 +494,7 @@ function patch(deviceSelector, deviceProperties, cb) {
 module.exports =  {
   connect: connect,
   patch: patch,
-  on: on
+  on: on,
+  getLocalIpAddress: getLocalIpAddress
 };
 
