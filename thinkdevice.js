@@ -46,7 +46,7 @@ function getLocalIpAddress () {
 
 function directUrl() {
   if (serverPort) {
-    return "http://" + getLocalIpAddress() + ":" + serverPort.toString() + "/";
+    return "http://" + getLocalIpAddress() + ":" + serverPort.toString();
   }
   else
   {
@@ -54,7 +54,7 @@ function directUrl() {
   }
 }
 
-function safeParse(data) {
+function safeParseJSON(data) {
   try 
   { 
     return JSON.parse(data); 
@@ -123,29 +123,42 @@ function handleErr(err, res) {
   res.end(util.format(err) + '\n');
 }
 
+function post(path, params, cb) {
+  request.post({url: urlToThinkAutomatic + path, 
+              qs: { access_token: deviceConf['deviceToken'] }, 
+              form: params}, function(err,httpResponse,body) {
+    cb(err, httpResponse, body); 
+  });
+}
+
 function handleReq(req, res) {
+  var deviceId;
   var parsedUrl = url.parse(req.url);
   var params = querystring.parse(parsedUrl.query);
 
   if (parsedUrl.pathname == '/link') {
+    console.log('link received');
     if (!params['linkToken']) {
       handleErr("No linkToken provided", res);
     }
     else {
-      request.post({url: urlToThinkAutomatic + 'devices/' + deviceConf['deviceId'] + '/link', 
-                    qs: { access_token: deviceConf['deviceToken'] }, 
-                    form: { linkToken: params['linkToken'] }}, function(err,httpResponse,body) { 
+      if (params['deviceId'])
+        deviceId = params['deviceId'];
+      else
+        deviceId = deviceConf['deviceId'];
+
+      post('devices/' + deviceId.toString() + '/link', { linkToken: params['linkToken'] }, function(err,httpResponse,body) { 
         if (err) {
           handleErr(err, res);
         }
-        else {
+        else if (deviceId == deviceConf['deviceId']) {
           updateThinkDeviceConf(body, function (err) {
               if (err) {
                 handleErr(err, res);
               }
               else {
                 if (httpLinkRequest) {
-                  httpLinkRequest(params, res);
+                  httpLinkRequest(req, res);
                 }
                 else if (params['successRedirect']) {
                   res.writeHead(301, {'Location': params['successRedirect']});
@@ -160,22 +173,21 @@ function handleReq(req, res) {
       });
     }
   }
-  else if (parsedUrl.pathname == '/')
+  else
   {
-    console.log('Selecting scene ' + params['sceneId']);
-    if (sceneTriggerData['sceneTriggerData']) {
-      selectScene(findElem(sceneTriggerData['sceneTriggerData']['scenes'], params));
+    if (params['sceneId'] && (parsedUrl.pathname == '/' || parsedUrl.pathname == '')) {
+      console.log('Selecting scene ' + params['sceneId']);
+      if (sceneTriggerData['sceneTriggerData']) {
+        selectScene(findElem(sceneTriggerData['sceneTriggerData']['scenes'], params));
+      }
     }
     if (httpRequest) {
-      httpRequest(params, res);
+      httpRequest(req, res);
     }
     else {
       res.writeHead(200, {"Content-Type": "text/html"});
       res.end();
     }
-  }
-  else {
-    handleErr("Invalid route", res);
   }
 }
 
@@ -223,8 +235,7 @@ function purgeDeviceFromDeviceCache(deviceId) {
 
 function sendMessage(data)
 {
-  if (data && data['device'] && data['device']['deviceId'] &&
-      data['action'] && data['action']['sceneId']) {
+  if (data && data['device'] && data['device']['deviceId'] && data['action']) {
     var device = findElem(devices, {deviceId: data['device']['deviceId']});
     if (!device) {
       devices.push({ deviceId: data['device']['deviceId'], 
@@ -234,7 +245,7 @@ function sendMessage(data)
       clearTimeout(device['timeout']);
       device['timeout'] = setTimeout(function() { 
         purgeDeviceFromDeviceCache(data['device']['deviceId']); }, 5000 );
-      if (device['sceneId'] != data['action']['sceneId']) 
+      if (!device['sceneId'] || !data['action']['sceneId'] || device['sceneId'] != data['action']['sceneId']) 
         device['sceneId'] = data['action']['sceneId'];
       else
         return;
@@ -252,7 +263,7 @@ function startEventSource(cb) {
     onopen();
   };
   src.onmessage = function(e) {
-    var parsedData = safeParse(e.data);
+    var parsedData = safeParseJSON(e.data);
 
     if (parsedData['sceneTriggerData']) {
       updateSceneTriggerData(parsedData);
@@ -288,7 +299,7 @@ function run(cb) {
     run(cb);
   });
 
-  if (serverPort < 3300) {
+  if (serverPort < 65536) {
     console.log('Attempting to start local server on port ' + serverPort.toString());
     server.listen(serverPort, function(){
       console.log('Local http server running at ' + directUrl());
@@ -303,13 +314,16 @@ function run(cb) {
 
 function connect(deviceProperties, cb)
 {
-  serverPort = 3205;
+  if (deviceProperties['serverPort'])
+    serverPort = deviceProperties['serverPort'];
+  else
+    serverPort = 3205;
 
   deviceProperties['directUrl'] = directUrl();
 
   fs.readFile('sceneData.conf', 'utf8', function (err,data) {
     if (!err) {
-      sceneTriggerData = safeParse(data);
+      sceneTriggerData = safeParseJSON(data);
     }
     fs.readFile('device.conf', 'utf8', function (err,data) {
       if (err) 
@@ -322,7 +336,7 @@ function connect(deviceProperties, cb)
       }
       else
       {
-        deviceConf = safeParse(data);
+        deviceConf = safeParseJSON(data);
         console.log('Updating device.');
         request.patch({url: urlToThinkAutomatic + 'devices/' + deviceConf['deviceId'], 
                     qs: { access_token: deviceConf['deviceToken'] }, 
@@ -463,7 +477,7 @@ function patch(deviceSelector, deviceProperties, cb) {
                   qs: { access_token: deviceConf['deviceToken'] }, 
                   form: deviceProperties }, function(err,httpResponse,body) { 
                     if (typeof cb === 'function')
-                      cb(safeParse(body));
+                      cb(safeParseJSON(body));
                   });
   }
   else {
@@ -475,7 +489,7 @@ function patch(deviceSelector, deviceProperties, cb) {
                       qs: { access_token: deviceConf['deviceToken'] }, 
                       form: devicePropertiesWithScene }, function(err,httpResponse,body) { 
                         if (typeof cb === 'function')
-                          cb(safeParse(body));
+                          cb(safeParseJSON(body));
                       });
       }
       else {
@@ -483,18 +497,30 @@ function patch(deviceSelector, deviceProperties, cb) {
                       qs: { access_token: deviceConf['deviceToken'], where: deviceSelector }, 
                       form: devicePropertiesWithScene }, function(err,httpResponse,body) { 
                         if (typeof cb === 'function')
-                          cb(safeParse(body));
+                          cb(safeParseJSON(body));
                       });
       }
     });
   }
 }
 
+function getServerPort() {
+  return serverPort;
+}
+
+function getDeviceConf() {
+  return deviceConf;
+}
 
 module.exports =  {
+  safeParseJSON: safeParseJSON,
   connect: connect,
+  directUrl: directUrl,
+  post: post,
   patch: patch,
   on: on,
-  getLocalIpAddress: getLocalIpAddress
+  localIp: getLocalIpAddress,
+  localPort: getServerPort,
+  deviceConf: getDeviceConf
 };
 
