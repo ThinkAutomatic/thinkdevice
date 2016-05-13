@@ -129,11 +129,17 @@ Next step is to create a free account on the Think Automatic platform by going [
 Once you have an account and are logged in, create at least one home with one room if you have not done so already by following the on screen instructions.
 
 Once you have created a home and as long as you are on the same local network you should see an option for 'Show discovered device(s)'. 
+
 ![Alt text](/images/discovered.png?raw=true)
+
 After tapping that you will see your newly created 'Example Widget' listed. Tap on that and you should see a popup for linking.
+
 ![Alt text](/images/linking.png?raw=true)
+
 Tap 'Attempt Link' and your 'Example Widget' will be securely linked to your account and you should then see the room it was linked into now with three preset scenes which you can tap on.
+
 ![Alt text](/images/room.png?raw=true)
+
 When you tap on them you should see the commands received by the 'Example Widget' output to the console that should look something like this.
 ```
 Received:
