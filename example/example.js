@@ -2,7 +2,7 @@
 
 var td = require('thinkdevice');
 
-td.connect({ name: 'Example Hub',  deviceTypeUuid: '636a0568-5dd1-414f-9328-a092164e5374' }, function () { 
+td.connect({ name: 'Example Widget',  deviceTypeUuid: 'fa3aff64-f259-4212-9adf-ab53ac9106fe' }, function () { 
   console.log('Started')
 });
 
