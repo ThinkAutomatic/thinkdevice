@@ -102,7 +102,7 @@ function scheduleKeepAlive(err) {
 }
 
 function sendKeepAlive() {
-  console.log('Sending keepAlive');
+  console.log('Sending thinkdevice keepAlive');
   request.post({url: urlToThinkAutomatic + 'devices/' + deviceConf['deviceId'] + '/keepAlive', 
                 qs: { access_token: deviceConf['deviceToken'] }, 
                 form: { directUrl: directUrl() }}, function(err,httpResponse,body) { 
@@ -124,10 +124,17 @@ function handleErr(err, res) {
 }
 
 function post(path, params, cb) {
+  // check if params was omitted
+  if ((typeof params === 'function') || (typeof params === 'undefined')) {
+    cb = params;
+    params = null;
+  }
+
   request.post({url: urlToThinkAutomatic + path, 
               qs: { access_token: deviceConf['deviceToken'] }, 
               form: params}, function(err,httpResponse,body) {
-    cb(err, httpResponse, body); 
+    if (typeof cb === 'function')
+      cb(err, httpResponse, body); 
   });
 }
 
@@ -268,10 +275,18 @@ function startEventSource(cb) {
     if (parsedData['sceneTriggerData']) {
       updateSceneTriggerData(parsedData);
     }
-    else if ((parsedData['delete'] == 'true') && parsedData['device'] && (parsedData['device']['deviceId'] == deviceConf['deviceId'])) {
-      console.log('Deleting device info and exiting');
-      fs.unlink('device.conf');
-      process.exit(1);
+    else if (parsedData['device'] && (parsedData['device']['deviceId'] == deviceConf['deviceId']) &&
+             parsedData['device']['deviceToken'] && (parsedData['device']['deviceToken'] == deviceConf['deviceToken'])) {
+      if (parsedData['delete'] == 'true') {
+        console.log('Deleting device info and exiting');
+        fs.unlink('device.conf');
+        process.exit(1);
+      }
+      else {
+        updateThinkDeviceConf(JSON.stringify(parsedData['device']), function(err) {
+          sendMessage(parsedData);
+        });
+      }
     }
     else {
       sendMessage(parsedData);
