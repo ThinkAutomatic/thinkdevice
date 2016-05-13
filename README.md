@@ -130,15 +130,15 @@ Once you have an account and are logged in, create at least one home with one ro
 
 Once you have created a home and as long as you are on the same local network you should see an option for 'Show discovered device(s)'. 
 
-![Alt text](/images/discovered.png?raw=true)
+<img src="/images/discovered.png">
 
 After tapping that you will see your newly created 'Example Widget' listed. Tap on that and you should see a popup for linking.
 
-![Alt text](/images/linking.png?raw=true)
+<img src="/images/linking.png">
 
 Tap 'Attempt Link' and your 'Example Widget' will be securely linked to your account and you should then see the room it was linked into now with three preset scenes which you can tap on.
 
-![Alt text](/images/room.png?raw=true)
+<img src="/images/room.png">
 
 When you tap on them you should see the commands received by the 'Example Widget' output to the console that should look something like this.
 ```
