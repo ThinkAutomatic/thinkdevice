@@ -124,7 +124,7 @@ The device.conf file contains the same information reported above along with a s
 
 ### Testing that the example is already integrated with the platform
 
-Next step is to create a free account on the Think Automatic platform by going [here](https://app.thinkautomatic.io/users/register) or if you already have an account login [here](https://app.thinkautomatic.io/users/login). Note this is designed for a phone screen, but works in any browser.
+Next step is to create a free account on the Think Automatic platform by going <a href="https://app.thinkautomatic.io/users/register" target="_blank">here</a> or if you already have an account login <a href="https://app.thinkautomatic.io/users/login" target="_blank">here</a>. Note this is designed for a phone screen, but works in any browser.
 
 Once you have an account and are logged in, create at least one home with one room if you have not done so already by following the on screen instructions.
 
@@ -167,9 +167,9 @@ Congratulations! You have successfully created a sample device that is integrate
 
 In the Widget example the up arrow and down arrow on the keyboard generate events for { discreteAttr: 'up' } and { discreteAttr: 'down' } respectively. These are designated as triggering events for the Widget device type which means that they trigger scene changes in the same room where the Widget is placed. When you press these keys you can see the command that comes back to the Widget from the platform based on those triggering events.
 
-For further experimentation try creating other virtual devices by using other device types that you can browse and/or create [here](https://app.thinkautomatic.io/deviceTypes). Once you have two or more devices running try moving them between rooms using the web UI to see how they interact.
+For further experimentation try creating other virtual devices by using other device types that you can browse and/or create <a href="https://app.thinkautomatic.io/deviceTypes" target="_blank">here</a>. Once you have two or more devices running try moving them between rooms using the web UI to see how they interact.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) file for details
 
