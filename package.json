@@ -1,6 +1,6 @@
 {
   "name": "thinkdevice",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Think Automatic platform integration node module",
   "main": "thinkdevice.js",
   "scripts": {
@@ -8,6 +8,10 @@
   },
   "author": "Steve Harris <steve@thinkautomatic.io> (http://thinkautomatic.io/)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ThinkAutomatic/thinkdevice.git"
+  },
   "dependencies": {
     "eventsource": "^0.2.0",
     "request": "^2.69.0"
