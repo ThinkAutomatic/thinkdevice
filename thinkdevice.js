@@ -280,6 +280,7 @@ function startEventSource(cb) {
       if (parsedData['delete'] == 'true') {
         console.log('Deleting device info and exiting');
         fs.unlink('device.conf');
+        fs.unlink('sceneData.conf');
         process.exit(1);
       }
       else {
