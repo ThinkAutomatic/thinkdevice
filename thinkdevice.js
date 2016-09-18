@@ -426,6 +426,7 @@ function setRoomTimeout(roomId, sceneId) {
 
 function selectScene(scene) {
   if (scene) {
+    sendMessage({ action: { sceneId: scene['sceneId'] }});
     if (scene['commands']) {
       scene['commands'].forEach(function (command) { sendMessage(command); });
     }
@@ -440,45 +441,52 @@ function selectScene(scene) {
 
 function selectCachedScene(deviceSelector, deviceProperties, cb) {
   if (sceneTriggerData['sceneTriggerData']) {
-    var devices = sceneTriggerData['sceneTriggerData']['devices'];
-    if (devices) {
-      var device = findElem(devices, deviceSelector);
-      if (device && device['actions']) {
-        var action = findElem(device['actions'], deviceProperties);
-        if (action && action['scenes']) {
-          var scenes = action['scenes'];
-          for (var i = 0; i < scenes.length; i++) {
-            var scene = scenes[i];
-            if (findElem(sceneSelectHistory, scene) == null) {
-              var fullScene = findElem(sceneTriggerData['sceneTriggerData']['scenes'], scene);
-              if (fullScene) {
-                selectScene(fullScene);
-
-                var localDirectUrls = sceneTriggerData['sceneTriggerData']['localDirectUrls'];
-                if (localDirectUrls) {
-                  localDirectUrls.forEach(function (directUrl) {
-                    try { 
-                      console.log('Selecting scene ' + fullScene.sceneId.toString() + ' at: ' + directUrl.toString());
-                      request.get({url: directUrl + '?sceneId=' + fullScene.sceneId.toString() }, function(error, response, body) {
-                      });
-                    }
-                    catch (err) {
-                      logError(err);
-                    }
-                  });
-                }
-
-                deviceProperties['sceneId'] = fullScene.sceneId;
-//                deviceProperties['silent'] = 'true';
-                cb(deviceProperties);
-                return;
+    var fullScene = findElem(sceneTriggerData['sceneTriggerData']['scenes'], { sceneId: deviceProperties['sceneId']});
+    
+    if (!fullScene) {
+      var devices = sceneTriggerData['sceneTriggerData']['devices'];
+      if (devices) {
+        var device = findElem(devices, deviceSelector);
+        if (device && device['actions']) {
+          var action = findElem(device['actions'], deviceProperties);
+          if (action && action['scenes']) {
+            var scenes = action['scenes'];
+            for (var i = 0; i < scenes.length; i++) {
+              var scene = scenes[i];
+              if (findElem(sceneSelectHistory, { sceneId: scene['sceneId']}) == null) {
+                fullScene = findElem(sceneTriggerData['sceneTriggerData']['scenes'], { sceneId: scene['sceneId']});
+                break;
               }
-            }
-          };
+            };
+          }
         }
       }
     }
+
+    if (fullScene) {
+      selectScene(fullScene);
+
+      var localDirectUrls = sceneTriggerData['sceneTriggerData']['localDirectUrls'];
+      if (localDirectUrls) {
+        localDirectUrls.forEach(function (directUrl) {
+          try { 
+            console.log('Selecting scene ' + fullScene.sceneId.toString() + ' at: ' + directUrl.toString());
+            request.get({url: directUrl + '?sceneId=' + fullScene.sceneId.toString() }, function(error, response, body) {
+            });
+          }
+          catch (err) {
+            logError(err);
+          }
+        });
+      }
+
+      deviceProperties['sceneId'] = fullScene.sceneId;
+  //  deviceProperties['silent'] = 'true';
+      cb(deviceProperties);
+      return;
+    }
   }
+
   cb(deviceProperties);
 }
 
