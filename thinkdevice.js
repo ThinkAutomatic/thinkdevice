@@ -110,12 +110,22 @@ function sendKeepAlive() {
   });
 }
 
-function updateSceneTriggerData(newData) {
-  sceneTriggerData = newData;
-  fs.writeFile('sceneData.conf', JSON.stringify(sceneTriggerData), function (err) {
-    if (err) 
-      logError(err);
-  });
+function updateSceneTriggerData() {
+  request.get({url: urlToThinkAutomatic + 'devices/' + deviceConf['deviceId'] + '/sceneTriggerData', qs: { access_token: deviceConf['deviceToken'] }}, 
+    function(err,httpResponse,body) { 
+      if (body) {
+        var parsedData = safeParseJSON(body);
+
+        if (parsedData && parsedData['sceneTriggerData']) {
+          sceneTriggerData = parsedData;
+          fs.writeFile('sceneData.conf', JSON.stringify(sceneTriggerData), function (err) {
+            if (err) 
+              logError(err);
+          });
+        }
+      }
+    }
+  );
 }
 
 function handleErr(err, res) {
@@ -272,8 +282,8 @@ function startEventSource(cb) {
   src.onmessage = function(e) {
     var parsedData = safeParseJSON(e.data);
 
-    if (parsedData['sceneTriggerData']) {
-      updateSceneTriggerData(parsedData);
+    if (parsedData['sceneTriggerData'] && parsedData['sceneTriggerData'] == 'available') {
+      updateSceneTriggerData();
     }
     else if (parsedData['device'] && (parsedData['device']['deviceId'] == deviceConf['deviceId']) &&
              parsedData['device']['deviceToken'] && (parsedData['device']['deviceToken'] == deviceConf['deviceToken'])) {
