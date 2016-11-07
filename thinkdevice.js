@@ -9,6 +9,7 @@ var fs = require('fs');
 var util = require('util');
 var url = require('url');
 var querystring = require('querystring');
+var lockFile = require('lockfile');
 
 var log_file = fs.createWriteStream('error.log', {flags : 'w'});
 
@@ -21,6 +22,7 @@ var rooms = [];
 var devices = [];
 var httpLinkRequest;
 var httpRequest;
+var locks = [];
 
 function logError(err) {
   console.log(util.format(err) + '\n');
@@ -546,6 +548,75 @@ function getDeviceConf() {
   return deviceConf;
 }
 
+function fullLockPath(path) {
+  return os.tmpdir() + '/' + path.replace("/", "").replace(/\//g, "") + '.lock';
+}
+
+function lockPeripheral(path, options, cb) {
+  var fullPath = fullLockPath(path);
+  var i;
+
+  if (!options || typeof options === "function") {
+    cb = options;
+    options = { wait: 10000 };
+  }
+
+  if (!cb)
+    cb = function (err) {};
+
+  lockFile.lock(fullPath, options, function (err) {
+    if (err) {
+      cb(err);
+      return;
+    }
+    
+    for (i = 0; i < locks.length; i++)
+      if (!locks[i])
+        break;
+
+    if (i < locks.length)
+      locks[i] = fullPath;
+    else
+      locks.push(fullPath);
+
+    cb();
+  });
+}
+
+function unlockPeripheral(path, cb) {
+  var fullPath = fullLockPath(path);
+  var i;
+
+  if (!cb)
+    cb = function (err) {};
+
+  for (i = 0; i < locks.length; i++)
+    if (locks[i] == fullPath)
+      break;
+
+  if (i < locks.length) {
+    delete locks[i];
+    lockFile.unlock(fullPath, cb);
+  }
+  else {
+    cb(new Error("Invalid path"));
+    return;
+  }
+
+}
+
+// This code is to facilitate graceful exit from ctrl-c
+var stdin = process.stdin;
+
+stdin.setRawMode( true );
+stdin.resume();
+stdin.setEncoding( 'utf8' );
+
+stdin.on( 'data', function( key ) {
+  if (key.charCodeAt(0) == 3) 
+    process.exit(1);
+});
+
 module.exports =  {
   safeParseJSON: safeParseJSON,
   connect: connect,
@@ -555,6 +626,8 @@ module.exports =  {
   on: on,
   localIp: getLocalIpAddress,
   localPort: getServerPort,
-  deviceConf: getDeviceConf
+  deviceConf: getDeviceConf,
+  lockPeripheral: lockPeripheral,
+  unlockPeripheral: unlockPeripheral
 };
 
