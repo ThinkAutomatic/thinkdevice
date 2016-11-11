@@ -255,6 +255,15 @@ function purgeDeviceFromDeviceCache(deviceId) {
 function sendMessage(data)
 {
   if (data && data['device'] && data['device']['deviceId'] && data['action']) {
+    if (deviceConf && deviceConf.devices) {
+      for (var i = 0; i < deviceConf.devices.length; i++) {
+        if (deviceConf.devices[i].deviceId == data['device']['deviceId']) {
+          deviceConf.devices[i] = data['device'];
+          break;
+        }
+      }
+    }
+
     var device = findElem(devices, {deviceId: data['device']['deviceId']});
     if (!device) {
       devices.push({ deviceId: data['device']['deviceId'], 
