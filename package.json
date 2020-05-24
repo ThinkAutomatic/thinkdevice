@@ -1,20 +1,20 @@
 {
   "name": "thinkdevice",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Think Automatic platform integration node module",
   "main": "thinkdevice.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"no test specified\" && exit 1"
   },
-  "author": "Steve Harris <steve@thinkautomatic.io> (http://thinkautomatic.io/)",
+  "author": "Steve Harris <steve@thinkautomatic.com> (https://thinkautomatic.io/)",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/ThinkAutomatic/thinkdevice.git"
   },
   "dependencies": {
-    "eventsource": "^0.2.0",
-    "lockfile": "^1.0.2",
-    "request": "^2.69.0"
+    "axios": "^0.19.2",
+    "eventsource": "^1.0.7",
+    "lockfile": "^1.0.2"
   }
 }
