@@ -13,8 +13,7 @@
     "url": "https://github.com/ThinkAutomatic/thinkdevice.git"
   },
   "dependencies": {
-    "axios": "^0.19.2",
-    "eventsource": "^1.0.7",
-    "lockfile": "^1.0.2"
+    "lockfile": "^1.0.2",
+    "ws": "^7.3.1"
   }
 }

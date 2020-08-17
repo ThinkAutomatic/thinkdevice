@@ -1,4 +1,5 @@
 # thinkdevice
+
 This is a node.js module designed to make device integration with the Think Automatic home automation machine learning platform very simple.
 
 ## Getting Started
@@ -7,14 +8,7 @@ This module has mainly been tested on the Raspberry Pi as it is quite well suite
 
 ### Prerequisities
 
-You will need to have node.js installed. Although it will likely work with more recent builds it has been tested on v0.10.28 which can be installed using the following commands.
-
-```
-cd ~
-wget http://nodejs.org/dist/v0.10.28/node-v0.10.28-linux-arm-pi.tar.gz
-cd /usr/local
-sudo tar xzvf ~/node-v0.10.28-linux-arm-pi.tar.gz --strip=1
-```
+You will need to have node.js and npm installed.
 
 ### Installing
 
@@ -25,76 +19,100 @@ cd ~
 mkdir MyDevice
 cd MyDevice
 ```
+
 Then install the thinkdevice module ignoring any warnings.
 
-``` 
+```
 npm install thinkdevice
 ```
+
 Copy the example to your MyDevice directory.
+
 ```
 cp node_modules/thinkdevice/example/example.js .
 ```
-The example is short but fully functional.
-```javascript
-'use strict';
 
-var td = require('thinkdevice');
+The example is short but fully functional.
+
+```javascript
+"use strict";
+
+var td = require("thinkdevice");
 
 // Connect to Think Automatic platform as a Widget whose interface is specified
 // by the given deviceTypeUuid. Device types can be designed and browsed by
 // going to https://app.thinkautomatic.io/deviceTypes.
-td.connect({ name: 'Example Widget',  deviceTypeUuid: 'fa3aff64-f259-4212-9adf-ab53ac9106fe' }, function () { 
-  console.log('Started')
-});
+td.connect(
+  {
+    name: "Example Widget",
+    deviceTypeUuid: "fa3aff64-f259-4212-9adf-ab53ac9106fe",
+  },
+  function () {
+    console.log("Started");
+  }
+);
 
-td.on('open', function() {
-  console.log('Connection to platform is opened');  
+td.on("open", function () {
+  console.log("Connection to platform is opened");
 });
 
 // This is the main message handler
-td.on('message', function (data) {
-  console.log('Received:');
+td.on("message", function (data) {
+  console.log("Received:");
   console.log(data);
   if (data.action && data.action.rangeAttr) {
     // This is where commands for the widget would be processed.
-    console.log('** Do something with rangeAttr value "' + data.action.rangeAttr.toString() + '" here');
-  }
-  else if (data.link) {
-    // The Widget can act as a hub device meaning that it can relay messages for 
-    // other devices. This section would be where a link request from the 
+    console.log(
+      '** Do something with rangeAttr value "' +
+        data.action.rangeAttr.toString() +
+        '" here'
+    );
+  } else if (data.link) {
+    // The Widget can act as a hub device meaning that it can relay messages for
+    // other devices. This section would be where a link request from the
     // platform would be handled.
-    console.log('** Link request received ' + JSON.stringify(data.link));
+    console.log("** Link request received " + JSON.stringify(data.link));
   }
 });
 
-td.on('error', function () {
-  console.log('Error receiving data from platform');
+td.on("error", function () {
+  console.log("Error receiving data from platform");
 });
 
-// The code below is to send device events to the platform based on key presses. 
+// The code below is to send device events to the platform based on key presses.
 var stdin = process.stdin;
 
-stdin.setRawMode( true );
+stdin.setRawMode(true);
 stdin.resume();
-stdin.setEncoding( 'utf8' );
+stdin.setEncoding("utf8");
 
-stdin.on( 'data', function( key ) {
+stdin.on("data", function (key) {
   switch (key.charCodeAt(0)) {
-    case 3:         process.exit(1);                    break;  // Ctrl - C
+    case 3:
+      process.exit(1);
+      break; // Ctrl - C
     case 27:
       switch (key.charCodeAt(2)) {
-        case 65:    td.patch({ discreteAttr: 'up' });   break;  // up arrow key
-        case 66:    td.patch({ discreteAttr: 'down' }); break;  // down arrow key
+        case 65:
+          td.patch({ discreteAttr: "up" });
+          break; // up arrow key
+        case 66:
+          td.patch({ discreteAttr: "down" });
+          break; // down arrow key
       }
       break;
   }
 });
 ```
+
 It can be run using the following command.
+
 ```
 node example.js
 ```
+
 And it will generate output that looks something like this
+
 ```
 Creating new device.
 Attempting to start local server on port 3205
@@ -118,6 +136,7 @@ Received:
      deviceTypeUuid: 'fa3aff64-f259-4212-9adf-ab53ac9106fe',
      externalIpAddress: '76.104.156.142' } }
 ```
+
 There will also now be two new files in your MyDevice directory. One called device.conf and another called error.log.
 
 The device.conf file contains the same information reported above along with a security token for the Think Automatic platform. Although you can look at this file, you can also safely ignore it.
@@ -128,7 +147,7 @@ Next step is to create a free account on the Think Automatic platform by going <
 
 Once you have an account and are logged in, create at least one home with one room if you have not done so already by following the on screen instructions.
 
-Once you have created a home and as long as you are on the same local network you should see an option for 'Show discovered device(s)'. 
+Once you have created a home and as long as you are on the same local network you should see an option for 'Show discovered device(s)'.
 
 <img src="https://app.thinkautomatic.io/images/discovered.png" width="300">
 
@@ -141,6 +160,7 @@ Tap 'Attempt Link' and your 'Example Widget' will be securely linked to your acc
 <img src="https://app.thinkautomatic.io/images/room.png" width="300">
 
 When you tap on them you should see the commands received by the 'Example Widget' output to the console that should look something like this.
+
 ```
 Received:
 { action: { sceneId: 4242, rangeAttr: '50' },
@@ -161,6 +181,7 @@ Received:
      deviceTypeUuid: 'fa3aff64-f259-4212-9adf-ab53ac9106fe',
      externalIpAddress: '76.104.156.142' } }
 ```
+
 Congratulations! You have successfully created a sample device that is integrated with the Think Automatic machine learning platform.
 
 ### Experiment with the Example Widget
@@ -172,4 +193,3 @@ For further experimentation try creating other virtual devices by using other de
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
-
