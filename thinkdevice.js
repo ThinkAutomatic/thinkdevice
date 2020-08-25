@@ -112,7 +112,6 @@ var onError = function (message) {
 };
 
 function patch(devicePropertiesUpdate) {
-  console.log("patch called");
   if (ws) {
     devicePropertiesUpdate.deviceId = deviceConf.deviceId;
     ws.send(JSON.stringify(devicePropertiesUpdate));
@@ -264,8 +263,6 @@ function wsConnect() {
     onError();
   });
   ws.on("message", function incoming(data) {
-    console.log("message:");
-    console.log(data);
     var parsedData = safeParseJSON(data);
 
     if (parsedData) {
