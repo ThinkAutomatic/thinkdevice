@@ -42,29 +42,24 @@ var td = require("thinkdevice");
 // Connect to Think Automatic platform as a Widget whose interface is specified
 // by the given deviceTypeUuid. Device types can be designed and browsed by
 // going to https://app.thinkautomatic.io/deviceTypes.
-td.connect(
-  {
-    name: "Example Widget",
-    deviceTypeUuid: "fa3aff64-f259-4212-9adf-ab53ac9106fe",
-  },
-  function () {
-    console.log("Started");
-  }
-);
+td.connect({
+  name: "Example Widget",
+  deviceTypeUuid: "f760179f-8206-45cc-a158-64fd9e99489d",
+});
 
-td.on("open", function () {
-  console.log("Connection to platform is opened");
+td.on("connect", function () {
+  console.log("Connection to platform opened");
 });
 
 // This is the main message handler
 td.on("message", function (data) {
   console.log("Received:");
   console.log(data);
-  if (data.action && data.action.rangeAttr) {
+  if (data.action && data.action.volume) {
     // This is where commands for the widget would be processed.
     console.log(
-      '** Do something with rangeAttr value "' +
-        data.action.rangeAttr.toString() +
+      '** Do something with volume value "' +
+        data.action.volume.toString() +
         '" here'
     );
   } else if (data.link) {
@@ -94,10 +89,10 @@ stdin.on("data", function (key) {
     case 27:
       switch (key.charCodeAt(2)) {
         case 65:
-          td.patch({ discreteAttr: "up" });
+          td.patch({ button: "on" });
           break; // up arrow key
         case 66:
-          td.patch({ discreteAttr: "down" });
+          td.patch({ button: "off" });
           break; // down arrow key
       }
       break;
@@ -114,36 +109,25 @@ node example.js
 And it will generate output that looks something like this
 
 ```
-Creating new device.
 Attempting to start local server on port 3205
-Local http server running at http://192.168.2.22:3205/
-Sending thinkdevice keepAlive
-Started
-Connection to platform is opened
+Local http server running at http://192.168.2.83:3205
+Connection to platform opened
 Received:
-{ device:
-   { name: 'Example Widget',
-     hubId: null,
-     isHub: true,
-     local: true,
-     homeId: null,
-     online: true,
-     roomId: null,
-     deviceId: 4239,
-     homeName: null,
-     roomName: null,
-     directUrl: 'http://192.168.2.25:3205/',
-     deviceTypeUuid: 'fa3aff64-f259-4212-9adf-ab53ac9106fe',
-     externalIpAddress: '76.104.156.142' } }
+{
+  name: 'Example Widget',
+  homeId: null,
+  deviceId: 1424,
+  deviceToken: 'a9ad87c7-d79a-4491-be3a-90ead66564b8'
+}
 ```
 
-There will also now be two new files in your MyDevice directory. One called device.conf and another called error.log.
+There will also now be a new in your MyDevice directory called device.json.
 
-The device.conf file contains the same information reported above along with a security token for the Think Automatic platform. Although you can look at this file, you can also safely ignore it.
+The device.json file contains the same information reported above along with a security token for the Think Automatic platform. Although you can look at this file, you can also safely ignore it.
 
 ### Testing that the example is already integrated with the platform
 
-Next step is to create a free account on the Think Automatic platform by going <a href="https://app.thinkautomatic.io/users/register" target="_blank">here</a> or if you already have an account login <a href="https://app.thinkautomatic.io/users/login" target="_blank">here</a>. Note this is designed for a phone screen, but works in any browser.
+Next step is to create a free account on the Think Automatic platform by going <a href="https://app.thinkautomatic.io/users/signup" target="_blank">here</a> or if you already have an account login <a href="https://app.thinkautomatic.io/users/signin" target="_blank">here</a>. Note this is designed for a phone screen, but works in any browser.
 
 Once you have an account and are logged in, create at least one home with one room if you have not done so already by following the on screen instructions.
 
@@ -163,30 +147,18 @@ When you tap on them you should see the commands received by the 'Example Widget
 
 ```
 Received:
-{ action: { sceneId: 4242, rangeAttr: '50' },
-  device:
-   { name: 'Example Widget',
-     hubId: null,
-     isHub: true,
-     local: null,
-     homeId: 4234,
-     online: true,
-     roomId: 4240,
-     sceneId: '4243',
-     deviceId: 4239,
-     homeName: 'Test home',
-     roomName: 'Test room ',
-     directUrl: 'http://192.168.2.25:3208/',
-     rangeAttr: '0',
-     deviceTypeUuid: 'fa3aff64-f259-4212-9adf-ab53ac9106fe',
-     externalIpAddress: '76.104.156.142' } }
+{
+  action: { ramp: 0, volume: '50', sceneId: 1215 },
+  device: { name: 'Example Widget', homeId: 1012, deviceId: 1424 }
+}
+** Do something with volume value "50" here
 ```
 
 Congratulations! You have successfully created a sample device that is integrated with the Think Automatic machine learning platform.
 
 ### Experiment with the Example Widget
 
-In the Widget example the up arrow and down arrow on the keyboard generate events for { discreteAttr: 'up' } and { discreteAttr: 'down' } respectively. These are designated as triggering events for the Widget device type which means that they trigger scene changes in the same room where the Widget is placed. When you press these keys you can see the command that comes back to the Widget from the platform based on those triggering events.
+In the Widget example the up arrow and down arrow on the keyboard generate events for { button: 'on' } and { button: 'off' } respectively. These are designated as triggering events for the Widget device type which means that they trigger scene changes in the same room where the Widget is placed. When you press these keys you can see the command that comes back to the Widget from the platform based on those triggering events.
 
 For further experimentation try creating other virtual devices by using other device types that you can browse and/or create <a href="https://app.thinkautomatic.io/deviceTypes" target="_blank">here</a>. Once you have two or more devices running try moving them between rooms using the web UI to see how they interact.
 

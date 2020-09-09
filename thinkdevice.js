@@ -68,7 +68,6 @@ function handleReq(req, res) {
     if (!params.linkToken) {
       handleErr("No linkToken provided", res);
     } else {
-      console.log(params);
       if (params.deviceId) deviceId = params.deviceId;
       else deviceId = deviceConf.deviceId;
 
@@ -227,7 +226,9 @@ function startServer() {
   });
 
   server.on("error", function (e) {
-    logError("Unable to start local server on port " + serverPort.toString());
+    console.error(
+      "Unable to start local server on port " + serverPort.toString()
+    );
     serverPort = serverPort + 1;
     startServer();
   });
@@ -240,7 +241,7 @@ function startServer() {
       console.log("Local http server running at " + directUrl());
     });
   } else {
-    logError("[warning] Unable to start local server.");
+    console.warn("Unable to start local server.");
   }
 }
 
