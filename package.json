@@ -4,7 +4,8 @@
   "description": "Think Automatic platform integration node module",
   "main": "thinkdevice.js",
   "scripts": {
-    "test": "echo \"no test specified\" && exit 1"
+    "test": "mocha",
+    "test-with-coverage": "nyc --reporter=text mocha"
   },
   "author": "Steve Harris <steve@thinkautomatic.com> (https://thinkautomatic.io/)",
   "license": "MIT",
@@ -15,5 +16,12 @@
   "dependencies": {
     "lockfile": "^1.0.2",
     "ws": "^7.3.1"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.1.3",
+    "mock-fs": "^4.13.0",
+    "mock-socket": "^9.0.3",
+    "nyc": "^15.1.0"
   }
 }
