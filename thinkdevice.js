@@ -11,8 +11,11 @@ const lockFile = require("lockfile");
 
 const WebSocket = require("ws");
 const urlToThinkAutomaticWS = "wss://socket.thinkautomatic.io";
+const minBackoff = 100;
+const maxBackoff = 15000;
 
 var ws;
+var wsBackoff = minBackoff;
 var deviceConf;
 var serverPort;
 var httpLinkRequest;
@@ -37,6 +40,9 @@ function handleErr(err, res) {
 function updateThinkDeviceConf(newData, cb) {
   try {
     if (newData.deviceId) {
+      if (newData.deviceTokenNew) {
+        newData.deviceToken = newData.deviceTokenNew;
+      }
       deviceConf = newData;
       fs.writeFile(deviceFile, JSON.stringify(deviceConf), function (err) {
         if (err) console.error(err);
@@ -246,6 +252,7 @@ function startServer() {
 }
 
 function wsConnect() {
+  console.log("Attempting websocket connection");
   ws = new WebSocket(
     urlToThinkAutomaticWS +
       (deviceConf && deviceConf.deviceToken
@@ -253,33 +260,44 @@ function wsConnect() {
         : "")
   );
   ws.on("open", function open() {
+    wsBackoff = minBackoff;
     patch(deviceConf);
     onConnect();
   });
   ws.on("close", function close() {
     onClose();
-    setTimeout(wsConnect, 15000);
+    setTimeout(wsConnect, wsBackoff);
+    wsBackoff = Math.min(maxBackoff, wsBackoff * 2);
+    console.log("Backing off %d ms", wsBackoff);
   });
   ws.on("error", function error() {
     onError();
+    ws.close();
   });
   ws.on("message", function incoming(data) {
     var parsedData = safeParseJSON(data);
 
     if (parsedData) {
       if (
-        parsedData.delete == "true" &&
-        parsedData.device &&
-        parsedData.device.deviceId == deviceConf.deviceId
+        parsedData &&
+        parsedData.error &&
+        parsedData.error.code &&
+        parsedData.error.code == 3000
       ) {
-        console.log("Deleting device info and exiting");
+        console.log("Deleting invalid device info and exiting");
         fs.unlinkSync(deviceFile);
         process.exit(1);
       } else {
         if (parsedData.deviceToken) {
-          updateThinkDeviceConf(parsedData, function () {});
+          updateThinkDeviceConf(parsedData, function () {
+            if (parsedData.deviceTokenNew) {
+              // close (& automatic reopen) ws to start using new token
+              ws.close();
+            }
+          });
+        } else {
+          onMessage(parsedData);
         }
-        onMessage(parsedData);
       }
     }
   });
