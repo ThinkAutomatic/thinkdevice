@@ -251,6 +251,18 @@ function startServer() {
   }
 }
 
+function heartbeat() {
+  clearTimeout(ws.pingTimeout);
+
+  // Use `WebSocket#terminate()`, which immediately destroys the connection,
+  // instead of `WebSocket#close()`, which waits for the close timer.
+  // Delay should be equal to the interval at which your server
+  // sends out pings plus a conservative assumption of the latency.
+  ws.pingTimeout = setTimeout(() => {
+    ws.terminate();
+  }, 30000 + 1000);
+}
+
 function wsConnect() {
   console.log("Attempting websocket connection");
   ws = new WebSocket(
@@ -261,11 +273,14 @@ function wsConnect() {
   );
   ws.on("open", function open() {
     wsBackoff = minBackoff;
+    heartbeat();
     patch(deviceConf);
     onConnect();
   });
+  ws.on("ping", heartbeat);
   ws.on("close", function close() {
     onClose();
+    clearTimeout(ws.pingTimeout);
     setTimeout(wsConnect, wsBackoff);
     wsBackoff = Math.min(maxBackoff, wsBackoff * 2);
     console.log("Backing off %d ms", wsBackoff);
