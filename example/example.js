@@ -6,7 +6,6 @@ var td = require("thinkdevice");
 // by the given deviceTypeUuid. Device types can be designed and browsed by
 // going to https://app.thinkautomatic.io/deviceTypes.
 td.connect({
-  name: "Example Widget",
   deviceTypeUuid: "f760179f-8206-45cc-a158-64fd9e99489d",
 });
 
