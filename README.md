@@ -147,10 +147,7 @@ When you tap on them you should see the commands received by the 'Example Widget
 
 ```
 Received:
-{
-  action: { ramp: 0, volume: '50', sceneId: 1215 },
-  device: { name: 'Example Widget', homeId: 1012, deviceId: 1424 }
-}
+{ action: { ramp: 0, volume: '50', sceneId: 1215 }, deviceId: 1424 }
 ** Do something with volume value "50" here
 ```
 

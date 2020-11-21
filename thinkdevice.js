@@ -302,6 +302,10 @@ function wsConnect() {
         fs.unlinkSync(deviceFile);
         process.exit(1);
       } else {
+        if (parsedData.sceneTriggerData) {
+          // NYI processing of sceneTriggerData
+          return;
+        }
         if (parsedData.deviceToken) {
           updateThinkDeviceConf(parsedData, function () {
             if (parsedData.deviceTokenNew) {
@@ -309,9 +313,8 @@ function wsConnect() {
               ws.close();
             }
           });
-        } else {
-          onMessage(parsedData);
         }
+        onMessage(parsedData);
       }
     }
   });
