@@ -39,7 +39,10 @@ function handleErr(err, res) {
 
 function updateThinkDeviceConf(newData, cb) {
   try {
-    if (newData.deviceId) {
+    if (
+      newData.deviceId &&
+      (!deviceConf.deviceId || newData.deviceId == deviceConf.deviceId)
+    ) {
       if (newData.deviceTokenNew) {
         newData.deviceToken = newData.deviceTokenNew;
       }
