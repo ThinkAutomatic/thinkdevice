@@ -276,7 +276,10 @@ function wsConnect() {
   ws.on("open", function open() {
     wsBackoff = minBackoff;
     heartbeat();
-    patch(deviceConf);
+    if (deviceConf) {
+      deviceConf.directUrl = directUrl();
+      patch(deviceConf);
+    }
     onConnect();
   });
   ws.on("ping", heartbeat);
